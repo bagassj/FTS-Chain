@@ -20,31 +20,45 @@ d1 = 50
 d2 = 50
 u = [dMin-d2, dMax+d1]
 
-# Jumlah Interval 
-interval = round(1+(3.322*math.log(len(c),10)))
-lstInterval = [' ']*len(c)
-lstInterval[0] = interval
-
-# Panjang Interval
-intervalLength = round((u[1]-u[0])/interval)
-lstIntervalLength = [' ']*len(c)
-lstIntervalLength[0] = intervalLength
-
-def intervalTable(min, intervalLength, numClass):
+def setDifference(c):
   lst = []
-  for i in range(numClass):
+  for i in range(len(c)):
+    if i == len(c)-1:
+      x = c[i]
+    else:
+      x = abs(c[i+1]-c[i])
+    lst.append(x)
+  return lst
+
+def intervalRound(num):
+  if num > 0 and num <= 1:
+    return 0.1
+  elif num > 1 and num <= 10:
+    return int(round(num)), 1
+  elif num > 10 and num <= 100:
+    return 10
+  elif num > 100 and num <= 1000:
+    return 100
+  elif num > 1000 and num <= 10000:
+    return 1000
+  elif num > 10000 and num <= 100000:
+    return 10000
+
+def intervalTable(min, base, numOfInterval):
+  lst = []
+  for i in range(numOfInterval):
     lst.append([])
 
-  for i in range(numClass):
+  for i in range(numOfInterval):
     if i == 0:
       lst[i].append(min)
       lst[i].append("A"+str(i+1))
-      lst[i].append(min+intervalLength)
+      lst[i].append(min+base)
       lst[i].append(int((lst[i][0]+lst[i][2])/2))
     else:
       lst[i].append(lst[i-1][2])
       lst[i].append("A"+str(i+1))
-      lst[i].append(lst[i-1][2]+intervalLength)
+      lst[i].append(lst[i-1][2]+base)
       lst[i].append(int((lst[i][0]+lst[i][2])/2))
 
   return lst
@@ -55,6 +69,7 @@ def fuzzyfy(listIntervalTable ,c):
     for x in listIntervalTable:
       if i >= x[0] and i <= x[2]:
         lst.append(x[1])
+        break
   return lst
 
 def flr(listFuzzyfy):
@@ -152,7 +167,7 @@ def forecast(lstTempFLRG, lstFuzzyfy, lstForecastResult):
   lst.append(0)
   for i in range(1, len(lstFuzzyfy)):
     for x in lstTempFLRG:
-      if lstFuzzyfy[i] == x[0]:
+      if lstFuzzyfy[i-1] == x[0]:
         lst.append(lstForecastResult[lstTempFLRG.index(x)])
         break
 
@@ -198,7 +213,7 @@ def finalForecastDiff(c, lstForecastDiff):
   lst = []
   lst.append(0)
   for i in range(1, len(c)):
-    lst.append(round((lstForecastDiff[i]/c[i])*100, 5))
+    lst.append(round((lstForecastDiff[i]/c[i])*100, 2))
   return lst
 
 def NextPredict(num, lstTempFLRG, lstForecastResult):
@@ -207,8 +222,25 @@ def NextPredict(num, lstTempFLRG, lstForecastResult):
       return lstForecastResult[lstTempFLRG.index(i)]
 
 
+# Mencari selisih
+diff = setDifference(c)
+dfDiff = pd.DataFrame(diff, columns=["selisih"])
+dfDiff.head()
+
+# Rata rata selisih nilai mutlak
+meanAbsVal = round(sum(diff)/len(diff), 2)
+halfMeanAbsVal = round(meanAbsVal/2, 2)
+
+# Jumlah dan Panjang Interval
+base = intervalRound(halfMeanAbsVal)
+numOfInterval = int((u[1]-u[0])/base)
+lstNumOfInterval = [' ']*len(c)
+lstNumOfInterval[0] = numOfInterval
+lstBase = [' ']*len(c)
+lstBase[0] = base
+
 # Tabel Interval
-listIntervalTable = intervalTable(u[0], intervalLength, interval)
+listIntervalTable = intervalTable(u[0], base, numOfInterval)
 dfIntervalTable = pd.DataFrame(listIntervalTable)
 
 # Class
@@ -242,7 +274,7 @@ lstForecast = forecast(lstTempFLRG, lstFuzzyfy, lstForecastResult)
 dflstForecast = pd.DataFrame(lstForecast, columns = ["Ramalan 1"])
 
 # Adjust
-lstAdjust = adjust(tempFLR, lstFLRG, intervalLength/2)
+lstAdjust = adjust(tempFLR, lstFLRG, base/2)
 dflstAdjust = pd.DataFrame(lstAdjust, columns = ["Adjust"])
 
 # Ramalan Akhir
@@ -262,10 +294,13 @@ totalFinalForecastDiff = sum(lstFinalForecastDiff)
 lstTotalFinalForecastDiff = [' ']*len(c)
 lstTotalFinalForecastDiff[0] = totalFinalForecastDiff
 
-# Mape
-mape = round(100-(totalFinalForecastDiff/len(lstFinalForecastDiff)), 2)
+# Mape dan Tingkat Akurasi
+mape = round(totalFinalForecastDiff/len(lstFinalForecastDiff), 2)
 lstMape = [' ']*len(c)
 lstMape[0] = mape
+lvlAccur = 100 - mape
+lstLvlAccur = [' ']*len(c)
+lstLvlAccur[0] = lvlAccur
 
 nextPredict = NextPredict(tempFLR[len(tempFLR)-1][1], lstTempFLRG, lstForecastResult)
 lstNextPredict = [' ']*len(c)
@@ -278,8 +313,8 @@ final['Ramalan Selanjutnya'] = lstNextPredict
 final['MAPE'] = lstMape
 final['Harga Terbesar'] = lstDMax
 final['Harga Terkecil'] = lstDMin
-final['Panjang Interval'] = lstIntervalLength
-final['Jumlah Interval'] = lstInterval
+final['Basis'] = lstBase
+final['Jumlah Interval'] = lstNumOfInterval
 final[' '] = [' ']*len(c)
 final['Minimum'] = dfIntervalTable[0]
 final['Minimum'] = final['Minimum'].fillna('')
