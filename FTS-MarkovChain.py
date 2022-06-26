@@ -16,8 +16,10 @@ dMin = min(c)
 lstDMin = [' ']*len(c)
 lstDMin[0] = dMin
 
-d1 = 50
-d2 = 50
+# d1 = 50
+# d2 = 50
+d1 = int(input('Masukkan d1: '))
+d2 = int(input('Masukkan d2: '))
 u = [dMin-d2, dMax+d1]
 
 def setDifference(c):
@@ -309,7 +311,7 @@ lstNextPredict[0] = nextPredict
 # to Excel
 final = pd.concat([df, dfFuzzyfy, dfFLR, dflstForecast, dflstAdjust, dflstFinalForecast, dflstForecastDiff, dflstFinalForecastDiff], axis = 1)
 final['Total'] = lstTotalFinalForecastDiff
-final['Ramalan Selanjutnya'] = lstNextPredict
+final['Ramalan Akhir'] = lstNextPredict
 final['MAPE'] = lstMape
 final['Harga Terbesar'] = lstDMax
 final['Harga Terkecil'] = lstDMin
